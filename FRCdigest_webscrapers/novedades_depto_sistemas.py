@@ -50,7 +50,7 @@ def scrap():
 	news = []
 	for panel in panels:
 		# Get all the needed data
-		title = panel.find(class_="panel-heading titulo-noticia").find("a").get_text()
+		title = panel.find(class_="panel-heading titulo-noticia").find(class_="link_noticia").get_text()
 
 		content = panel.find(class_=\
 			"panel-body content-scroll descripcion-noticia ps-container").find("div")\
@@ -62,11 +62,19 @@ def scrap():
 			img_url = "https://www.institucional.frc.utn.edu.ar"+img["src"]
 			images.append(img_url)
 
-		link = title = panel.find(class_=\
+		link = panel.find(class_=\
 			"panel-heading titulo-noticia").find("a")["href"]
 		link = "https://www.institucional.frc.utn.edu.ar"+link
 
+		# Ignore everything that is not after the last '/' of the link
+		code = link.split("/")
+		code = code[-1]
+		# Grab everything after '?'
+		code = code.split("?")
+		code = code[-1]
+
 		news.append({
+			"code": code,
 			"title": title,
 			"content": content,
 			"images": images,
@@ -81,6 +89,9 @@ def scrap():
 
 	# Create stack
 	stack = []
+	for a in news:
+		stack.append(a["code"])
+
 	stored_stack = []
 
 	if os.path.exists(filename):
@@ -89,32 +100,24 @@ def scrap():
 			stored_stack = pickle.load(file)
 			file.close()
 		
+
 	# Open if exists, or create the file
 	file = open(filename, "wb")
 
-	if stored_stack != []:
-		# There is a stored stack, so a comparation must be done
-		# News found in the stored_stack will be removed from the news vector
-		for i in range(len(stack)):
-			if stack[i] == stored_stack[i]:
-				news.pop(i)
+	trimed_news = []
+	for j in range(len(news)):
+		if not(news[j]["code"] in stored_stack):
+			trimed_news.append(news[j])
 
-	if len(news) > 0:
-		# Save new news
-		# Point to the start of the file
-		file.seek(0)
 
-		# Write
-		pickle.dump(news, file)
+	file.seek(0)
+	pickle.dump(stack, file)
+	file.truncate()
+	file.close()
 
-		# Delete old data
-		file.truncate()
-		file.close()
-
-		return news
+	if trimed_news != []:
+		return trimed_news
 	else:
-		file.close()
-
 		return False
 
 
